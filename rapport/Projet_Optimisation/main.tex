@@ -1,0 +1,292 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\geometry{margin=2cm}
+
+
+\pagestyle{fancy}
+\fancyhead[R]{Optimisation Linéaire et Non Linéaire}
+\fancyhead[L]{Projet}  
+
+
+\title{\textbf{\textcolor{orange}{\MakeUppercase{
+Planification Optimale de Centrales de Production Électrique}}}}
+\author{Réalisé par \textbf{KENGNE Fresnel} et \textbf{SIBEFEU Emmanuel}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Modélisation du problème d'optimisation}
+
+\subsection{Variables de décision}
+Le problème consiste à déterminer la production optimale de 4 centrales électriques sur 8 tranches horaires. Les variables de décision sont définies par $p_{j,i}$ représentant la puissance produite (en MW) par la centrale $i \in \{1,2,3,4\}$ durant la tranche horaire $j \in \{1,...,8\}$.
+
+\subsection{Fonction objectif}
+L'objectif est de minimiser le coût total de fonctionnement sur les 8 heures. Le coût horaire de chaque centrale suit une fonction quadratique :
+$$C_i^f(P) =  a_i^0 \cdot + a_i^1 \cdot P_{j,i}^{1.1} + a_i^2 \cdot P_{j,i}^2$$
+
+La fonction objectif s'écrit donc :
+$$\min \sum_{j=1}^{8} \sum_{i=1}^{4} \left( a_i^0 + a_i^1 p_{j,i}^{1.1} +a_i^2 p_{j,i}^2 \right)$$
+
+Cette formulation définit un \textbf{problème d'optimisation non linéaire} avec contraintes non linéaires (en raison de l'exposant 1.1 et des contraintes quadratiques).
+
+\subsection{Contraintes}
+Le problème est soumis à trois types de contraintes :
+
+\textbf{1. Contraintes de capacité :} Chaque centrale doit fonctionner entre ses limites techniques :
+$$P_{\min,i} \leq p_{j,i} \leq P_{\max,i}, \quad \forall i,j$$
+
+\textbf{2. Contraintes de demande :} La production totale doit satisfaire la demande $D_j$ à chaque tranche :
+$$\sum_{i=1}^{4} p_{j,i} \geq D_j, \quad \forall j$$
+
+\textbf{3. Contraintes de réserve :} Une réserve de 10\% de la demande doit être disponible :
+$$\sum_{i=1}^{4} (P_{\max,i} - p_{j,i}) \geq 0.1 \times D_j, \quad \forall j$$
+
+Cette contrainte garantit qu'au moins 10\% de marge de production supplémentaire est disponible pour répondre aux variations imprévues.
+
+\section{Résolution numérique}
+
+\subsection{Choix du solveur}
+Le solveur \texttt{fmincon} de MATLAB a été utilisé avec l'algorithme SQP (Sequential Quadratic Programming), particulièrement adapté aux problèmes d'optimisation non linéaire avec contraintes. Le point initial a été fixé à $x_{j,i}^{(0)} = 150$ MW pour toutes les variables, représentant une répartition uniforme.
+
+\subsection{Analyse de la convergence}
+Les résultats d'optimisation montrent une convergence satisfaisante :
+
+\begin{itemize}
+\item \textbf{Nombre d'itérations :} 50 itérations pour atteindre la convergence
+\item \textbf{Nombre d'évaluations :} 101 évaluations de la fonction objectif
+\item \textbf{Critère d'arrêt :} First-order optimality = $3.4005 \times 10^{-5}$ (inférieur au seuil de tolérance)
+\item \textbf{Faisabilité :} Feasibility = 0 (toutes les contraintes sont satisfaites)
+\item \textbf{Coût optimal :} $f^* = 120\,529.3$ (unités monétaires)
+\end{itemize}
+
+La décroissance monotone de la fonction objectif (de $170\,675.1$ à $120\,529.3$) et la réduction progressive de la norme du gradient (de 43.87 à $3.4005 \times 10^{-5}$) attestent d'une convergence régulière vers un minimum local. L'algorithme n'a rencontré aucune difficulté numérique, avec un \texttt{flag = 1} indiquant une terminaison réussie.
+
+\section{Analyse des résultats}
+
+\subsection{Répartition optimale de la production}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{ccccccccc}
+\toprule
+Centrale & T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8 \\
+\midrule
+1 & 221.0 & 263.3 & \textbf{300.0} & 268.5 & 200.0 & 128.6 & 134.3 & 252.7 \\
+2 & 173.9 & 203.2 & 228.6 & 206.8 & 159.9 & 106.4 & 110.7 & 195.9 \\
+3 & 35.1 & 43.5 & 51.4 & 44.6 & 31.1 & 25.0 & 25.0 & 41.4 \\
+4 & \textbf{20.0} & \textbf{20.0} & \textbf{20.0} & \textbf{20.0} & \textbf{20.0} & \textbf{20.0} & \textbf{20.0} & \textbf{20.0} \\
+\midrule
+Total & 450.0 & 530.0 & 600.0 & 540.0 & 410.0 & 280.0 & 290.0 & 510.0 \\
+\bottomrule
+\end{tabular}
+\caption{Production optimale (MW) par centrale et par tranche horaire}
+\end{table}
+
+\subsection{Interprétation économique et technique}
+
+L'analyse de la solution optimale révèle plusieurs caractéristiques importantes :
+
+\textbf{1. Hiérarchisation des centrales :} La centrale 4, bien qu'ayant le coefficient $a_1$ le plus élevé (23.60), fonctionne systématiquement à son minimum ($P_{\min} = 20$ MW). Cette contre-intuition s'explique par sa faible capacité (20-60 MW) et son coût marginal élevé. Les centrales 1 et 2, avec leurs grandes capacités (75-300 MW et 60-250 MW), assurent l'essentiel de la production.
+
+\textbf{2. Saturation durant les pics :} La centrale 1 atteint sa capacité maximale (300 MW) à la tranche 3, correspondant à la demande de pointe (600 MW). Cela démontre la mobilisation maximale des ressources durant les périodes critiques tout en respectant la contrainte de réserve de 10\%.
+
+\textbf{3. Respect des contraintes de réserve :} Pour chaque tranche, la marge disponible est vérifiée. Par exemple, à T3 (demande = 600 MW) : réserve disponible = $(300-300) + (250-228.6) + (80-51.4) + (60-20) = 90$ MW $> 60$ MW requis.
+
+\textbf{4. Unicité de la solution :} Bien que le problème soit non convexe (exposant 1.1), la structure des contraintes et la nature des coûts conduisent probablement à un minimum global. L'absence de variations erratiques dans les résultats et la convergence stable suggèrent l'unicité pratique de la solution, bien qu'une preuve formelle nécessiterait une analyse de convexité approfondie.
+
+\textbf{5. Temps de calcul :} Il est de \textbf{0.1527 s}, confirmant l'efficacité de l'approche.
+
+\subsection{Limitations et perspectives}
+
+Le modèle actuel présente certaines simplifications : coûts de démarrage ignorés, pas de contraintes de rampe (variation limitée entre tranches), et demande supposée parfaitement prévisible. Une extension pourrait intégrer l'incertitude via l'optimisation stochastique ou robuste, ainsi que des contraintes dynamiques reliant les productions entre tranches successives.
+
+
+\section{ Modélisation avec arrêts et démarrages}
+
+\subsection*{4.1. Modélisation du problème}
+
+Nous cherchons à planifier la production sur un horizon de 8 heures pour 4 centrales.
+
+\paragraph{Variables de décision :}
+Pour chaque centrale $i \in \{1, \dots, 4\}$ et chaque instant $j \in \{1, \dots, 8\}$ :
+\begin{itemize}
+    \item $P_{j,i} \in \mathbb{R}^+$ : Puissance produite par la centrale $i$ à l'instant $j$ (en MW).
+    \item $x_{j,i} \in \{0,1\}$ : État de la centrale ($1$ si en marche, $0$ si à l'arrêt).
+    \item $y_{j,i} \in \{0,1\}$ : Variable de démarrage ($1$ si la centrale $i$ démarre à l'instant $j$, $0$ sinon).
+\end{itemize}
+
+\paragraph{Fonction Objectif :}
+L'objectif est de minimiser le coût total, composé du coût de fonctionnement et du coût de démarrage $C_i^{dem}$.
+Soit $C_i^f(P_{j,i}) =  a_i^0 \cdot + a_i^1 \cdot P_{j,i}^{1.1} + a_i^2 \cdot P_{j,i}^2$ le coût de fonctionnement, où $a_i^0, a_i^1, a_i^2$ sont les coefficients fournis.
+
+$$ \min \sum_{j=1}^{8} \sum_{i=1}^{4} \left(( a_i^0 \cdot + a_i^1 \cdot P_{j,i}^{1.1} + a_i^2 \cdot P_{j,i}^2) \cdot x_{j,i}  + C_i^{dem} \cdot y_{j,i} \right) $$
+
+\paragraph{Contraintes :}
+
+\begin{enumerate}
+    \item \textbf{Équilibre Offre-Demande :}
+    La somme des productions doit égaler la demande $D_j$.
+    \begin{equation}
+        \sum_{i=1}^{4} P_{j,i} \geq D_j, \quad \forall j
+    \end{equation}
+
+    \item \textbf{Limites de puissance (Bornes) :}
+    Si la centrale est éteinte ($x_{j,i}=0$), sa puissance est nulle. Sinon, elle est bornée par $P_{min}$ et $P_{max}$.
+    \begin{equation}
+        P_{min,i} \cdot x_{j,i} \le P_{j,i} \le P_{max,i} \cdot x_{j,i}, \quad \forall j, \forall i
+    \end{equation}
+
+ \item \textbf{Contraintes de réserve :} Une réserve de 10\% de la demande doit être disponible pour les centrales en fonctionnement:
+$$\sum_{i=1}^{4} (P_{\max,i} - p_{j,i}) \cdot x_{j,i}\geq 0.1 \times D_j, \quad \forall j$$
+
+
+    \item \textbf{Logique de démarrage :}
+    La variable de démarrage $y_{j,i}$ doit valoir 1 si la centrale passe de l'état 0 à 1.
+    \begin{equation}
+        y_{j,i} \ge x_{j,i} - x_{j-1,i}, \quad \forall j, \forall i
+    \end{equation}
+    \textit{Note : Pour $j=1$, $x_{0,i}$ dépend de l'état initial $s_i$.}
+
+    \item \textbf{Temps minimum de fonctionnement ($t^{up}$) :}
+    Si une centrale démarre ($y_{j,i}$ =1), elle doit rester allumée au moins $t_i^{up}$ heures.
+    \begin{equation}
+        \sum_{k=j}^{j + t_i^{up} - 1} x_{k,i} \ge t_i^{up} \cdot y_{j,i}
+    \end{equation}
+    (Cette contrainte s'applique pour les $j$ tels que $j + t_i^{up} - 1 \le 8).
+
+    \item \textbf{Temps minimum d'arrêt ($t^{down}$) :}
+    Si une centrale s'arrête, elle doit rester éteinte au moins $t_i^{down}$ heures. En notant l'arrêt implicite $x_{j-1,i} - x_{j,i}$, on peut écrire :
+    \begin{equation}
+        \sum_{k=j}^{j + t_i^{down} - 1} (1 - x_{k,i}) \ge t_i^{down} \cdot (x_{j-1,i} - x_{j,i})
+    \end{equation}
+\end{enumerate}
+
+\subsection*{4.2. Choix du solveur et transformation}
+
+\paragraph{Qualification du problème :}
+Le modèle ci-dessus comporte :
+\begin{itemize}
+    \item Des variables binaires ($x, y$) et continues ($P$).
+    \item Une fonction objectif quadratique (terme en $P^2$).
+    \item Des contraintes linéaires.
+\end{itemize}
+Il s'agit d'un problème de type \textbf{MIQP} (Mixed-Integer Quadratic Programming).
+
+\paragraph{Analyse des solveurs MATLAB :}
+\begin{itemize}
+    \item \texttt{linprog} : Impossible (ne gère pas les variables entières ni l'objectif quadratique).
+    \item \texttt{fmincon} : Peu adapté (conçu pour le non-linéaire continu, gère très mal les entiers).
+    \item \texttt{intlinprog} : Gère les variables entières (MILP), mais \textbf{ne gère pas} l'objectif quadratique nativement.
+\end{itemize}
+
+\paragraph{Transformation proposée (Linéarisation) :}
+Pour utiliser le solveur \texttt{intlinprog}, nous devons linéariser la partie quadratique du coût .
+Nous utiliserons une \textbf{approximation linéaire par morceaux} (Piecewise Linear Approximation).
+Nous découpons l'intervalle $[P_{min,i}, P_{max,i}]$ en $K$ segments. La variable $P_{j,i}$ est remplacée par une somme de variables pondérées, ou le coût est approximé par une série d'inégalités linéaires tangentes ou sécantes à la courbe.
+
+Ainsi, le problème devient un problème de programmation linéaire mixte (MILP), résolvable par \texttt{intlinprog}.
+
+\section{Analyse des résultats et performance de l'algorithme}
+
+Cette section détaille l'analyse de la solution optimale obtenue pour la planification des quatre centrales sur l'horizon de 8 heures.
+
+\subsection{Analyse des valeurs optimales}
+
+L'optimisation a abouti à un coût total de fonctionnement de \textbf{118 976.25}. La décomposition de ce coût révèle la structure économique de la production :
+
+\begin{itemize}
+    \item \textbf{Coûts Variables (90.0\%)} : La majeure partie du coût provient de la consommation des centrales (terme dépendant de la puissance $P$).
+    \item \textbf{Coûts Fixes (9.7\%)} : Ces coûts sont engagés dès qu'une centrale est allumée. Ils incitent l'algorithme à ne pas laisser tourner des centrales inutilement à faible régime.
+    \item \textbf{Coûts de Démarrage (0.3\%)} : Bien que faibles en proportion (350.04), ils jouent un rôle critique dans la décision de lancer ou non une centrale de pointe pour une courte durée.
+\end{itemize}
+
+L'analyse du planning de production (tableaux des variables $P$ et $x$) met en évidence deux types de comportement :
+\begin{enumerate}
+    \item \textbf{Centrales de Base (C1 et C2)} : Elles sont actives sur l'ensemble de la période ($x_{j,1}=1, x_{j,2}=1$ pour tout $j$). Leur coût marginal plus faible et leur forte capacité les rendent prioritaires.
+    \item \textbf{Centrales de Pointe (C3 et C4)} :
+    \begin{itemize}
+        \item La centrale C3 démarre dès $H1$ pour absorber la charge initiale mais s'arrête à $H5$ lorsque la demande chute.
+        \item La centrale C4 (la plus petite) effectue des démarrages ponctuels à $H3$ (pic de consommation à 600 MW) et à $H8$, agissant comme variable d'ajustement.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Interprétation graphique}
+
+Les figures suivantes illustrent la dynamique de la solution optimale.
+
+\begin{itemize}
+     \begin{minipage}{0.5\textwidth}
+   \item \textbf{Graphique 1 (Production vs Demande) :} On observe un empilement parfait ("merit order"). Les centrales C1 et C2 forment le socle. C3 vient en complément, et C4 n'apparaît que pour "écrêter" la pointe de demande. L'équilibre offre-demande est strictement respecté.
+\end{minipage}
+\hfill
+    \begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{{Capture d'écran 2025-12-16 235513.png}}
+\end{minipage}
+
+       
+    \begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{{Capture d'écran 2025-12-17 002449.png}}
+\end{minipage}
+\hfill
+\begin{minipage}{0.5\textwidth}
+   \item \textbf{Graphique 2 (États et Démarrages) :} Ce diagramme de Gantt confirme la stabilité du réseau. On remarque les étoiles rouges (démarrages) uniquement sur C3 et C4. L'algorithme a évité les cycles "Marche/Arrêt" fréquents sur les grosses unités, respectant ainsi implicitement les contraintes de temps minimum ($t^{up}/t^{down}$).
+\end{minipage}
+
+
+    \begin{itemize}
+     \begin{minipage}{0.5\textwidth}
+    \item \textbf{Graphique 3 (Structure des Coûts) :} Les coûts suivent logiquement la courbe de demande. On note cependant que certaines heures de pointe sont disproportionnellement coûteuses dû à l'activation des coûts fixes des unités supplémentaires.
+\end{minipage}
+\hfill
+    \begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{Capture d'écran 2025-12-16 235535.png}
+\end{minipage}
+   
+        \begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{Capture d'écran 2025-12-16 235659.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.5\textwidth}
+    \item \textbf{Graphique 4 (Marge de Réserve) :} La zone verte (réserve effective) touche la ligne rouge (réserve requise) aux heures de pointe ($H3, H4$). Cela indique que le système est optimisé "au plus juste" : aucune capacité excédentaire inutile n'est allumée, minimisant ainsi les coûts fixes.
+\end{minipage}
+ 
+\end{itemize}
+
+\subsection{Performance de l'algorithme et choix méthodologique}
+
+Le problème a été résolu en utilisant une approche de \textbf{Programmation Linéaire Mixte (MILP)} après linéarisation par morceaux de la fonction de coût quadratique.
+
+\paragraph{Convergence et Unicité :}
+Le solveur \texttt{intlinprog} indique un statut de sortie optimal (\textit{ExitFlag = 1}).
+\begin{itemize}
+    \item \textbf{Gap Relatif : 0.00\%}. Cela signifie que la solution trouvée est prouvée comme étant l'optimum global mathématique. Il n'existe aucune autre combinaison de production moins chère.
+    \item Le temps de calcul est de \textbf{0.0498 s}, confirmant l'efficacité de l'approche.
+\end{itemize}
+
+\paragraph{Justification de l'approche (MILP vs Hybride) :}
+Une approche "Hybride" aurait consisté à séparer le problème en deux : une heuristique pour fixer les variables entières (démarrages), suivie d'une optimisation non-linéaire (NLP) pour les puissances. Bien que l'approche hybride gère nativement le coût quadratique, elle présente un risque majeur : celui de rester bloqué dans un optimum local ou de choisir une combinaison de machines sous-optimale (par exemple, allumer C3 au lieu de C4).
+
+En revanche, notre approche par linéarisation et résolution MILP globale présente un avantage décisif : \textbf{la garantie d'optimalité globale}. En transformant le problème non-convexe en un problème convexe par morceaux, l'algorithme de \textit{Branch \& Bound} explore l'arbre de décision de manière exhaustive et rigoureuse. L'erreur introduite par la linéarisation (5 segments) est infinitésimale par rapport au gain de robustesse obtenu sur les décisions stratégiques d'arrêt et de démarrage.
+
+\section*{Conclusion}
+
+La première approche continue (SQP) a abouti à un coût de \textbf{120 529}, validant la répartition de charge sur un parc en fonctionnement constant. L'intégration des arrêts et démarrages dans la seconde partie (MILP) a permis d'optimiser ce résultat à \textbf{118 976.25}, réalisant une économie de \textbf{1.3\%}.
+
+Ce gain démontre qu'il est économiquement plus rentable d'arrêter stratégiquement les centrales secondaires pour épargner les coûts fixes, malgré le coût des redémarrages. Ainsi, l'approche discrète s'avère supérieure : elle garantit l'optimalité globale tout en fournissant une planification plus réaliste et respectueuse des contraintes techniques de fiabilité.
+
+\end{document}
