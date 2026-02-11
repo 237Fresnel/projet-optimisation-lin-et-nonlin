@@ -110,7 +110,19 @@ La méthode MILP garantit l’optimalité globale et fournit une planification p
 ---
 
 ## Structure du projet
-
+```
+projet-optimisation-lin-et-nonlin/
+│
+├── code/
+│ └── projet.mlx
+│
+├── rapport/
+│ ├── rapport.pdf
+│ └── Projet-optimisation/
+│    └── rapport.tex
+│
+└── README.md
+```
 ---
 
 ## Outils utilisés
